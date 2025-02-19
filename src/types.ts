@@ -21,3 +21,14 @@ export interface Command {
 export interface RunnerOptions {
     testMode?: boolean;
 }
+
+export interface WorkflowBuilder {
+    name(name: string): WorkflowBuilder;
+    addCommand(command: string, name: string, skippable?: boolean): WorkflowBuilder;
+    build(): WorkflowConfig;
+    run(options?: WorkflowOptions): Promise<boolean>;
+}
+
+export interface WorkflowOptions extends RunnerOptions {
+    name?: string;
+}

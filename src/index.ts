@@ -48,3 +48,5 @@ export async function runWorkflow(config: WorkflowConfig, options: RunnerOptions
 }
 
 export { isRunning, setTestMode };
+export { createWorkflow } from "./workflow";
+export type { WorkflowBuilder, WorkflowOptions, WorkflowConfig, WorkflowCommand } from "./types";

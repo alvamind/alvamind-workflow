@@ -41,9 +41,10 @@ function createCommand(cmd: WorkflowCommand): Command {
     return {
         name: cmd.name,
         originalCmd: cmd.command,
-        command: cmd.command ? $`sh -c ${cmd.command}` : undefined,
+        command: cmd.command ? $`sh -c "${cmd.command}"` : undefined,  // Add quotes here
         skippable: cmd.skippable,
-        parallel: cmd.parallel?.map(createCommand)
+        parallel: cmd.parallel?.map(createCommand),
+        callback: cmd.callback
     };
 }
 
@@ -65,13 +66,27 @@ export async function runWorkflow(config: WorkflowConfig, options: RunnerOptions
         async function executeCommands(cmds: Command[]): Promise<void> {
             for (const cmd of cmds) {
                 if (cmd.parallel) {
-                    await Promise.all(cmd.parallel.map(async (parallelCmd) => {
+                    const results = await Promise.all(cmd.parallel.map(async (parallelCmd) => {
                         if (parallelCmd.command) {
-                            await executeCommand(parallelCmd, currentStep++, totalSteps, options.interactive);
+                            return executeCommand(parallelCmd, currentStep++, totalSteps, options.interactive);
                         }
                     }));
+
+                    // Handle branch results from parallel commands
+                    const branchResults = results
+                        .filter(r => r?.branchResult)
+                        .map(r => r?.branchResult)
+                        .filter(Boolean);
+
+                    if (branchResults.length > 0) {
+                        console.log(chalk.dim(`\nParallel branches: ${branchResults.join(', ')}`));
+                    }
                 } else if (cmd.command) {
-                    await executeCommand(cmd, currentStep++, totalSteps, options.interactive);
+                    const { branchResult } = await executeCommand(cmd, currentStep++, totalSteps, options.interactive);
+                    if (branchResult) {
+                        // Process commands based on branch result
+                        console.log(chalk.dim(`\nBranching to: ${branchResult}`));
+                    }
                 }
             }
         }

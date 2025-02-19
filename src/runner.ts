@@ -23,11 +23,11 @@ const log = (step: number, total: number, message: string) => {
 };
 
 export async function executeCommand(
-    { command, originalCmd, name, skippable }: Command,
+    { command, originalCmd, name, skippable, callback }: Command,
     step: number,
     total: number,
     interactive: boolean = false
-): Promise<number> {
+): Promise<{ duration: number; branchResult?: string }> {
     const startTime = performance.now();
     let intervalId: ReturnType<typeof setInterval>;
 
@@ -52,13 +52,13 @@ export async function executeCommand(
         return answer;
     }
 
-    async function handleFailure(error: any, duration: number): Promise<number> {
+    async function handleFailure(error: any, duration: number): Promise<{ duration: number; branchResult?: string }> {
         const choice = await promptForRetry();
 
         switch (choice) {
             case "1":
                 console.log(chalk.cyan("\nRetrying original command..."));
-                return executeCommand({ command, originalCmd, name, skippable }, step, total, interactive);
+                return executeCommand({ command, originalCmd, name, skippable, callback }, step, total, interactive);
             case "2":
                 const rl = createInterface({
                     input: process.stdin,
@@ -73,12 +73,13 @@ export async function executeCommand(
                     command: $`sh -c ${newCmd}`,
                     originalCmd: newCmd,
                     name,
-                    skippable
+                    skippable,
+                    callback
                 }, step, total, interactive);
             case "3":
                 if (skippable) {
                     log(step, total, `${chalk.yellow("⚠")} ${name} ${chalk.dim(formatTime(duration))} [SKIPPED]`);
-                    return duration;
+                    return { duration };
                 }
                 throw error;
             case "4":
@@ -112,13 +113,24 @@ export async function executeCommand(
 
         if (result.exitCode === 0) {
             log(step, total, `${chalk.green("✓")} ${name} ${chalk.dim(formatTime(duration))}`);
-            return duration;
+
+            // Handle callback if present
+            if (callback) {
+                const branchResult = callback({
+                    exitCode: result.exitCode,
+                    stdout: result.stdout.toString().trim(),  // Add trim() here
+                    stderr: result.stderr.toString()
+                });
+                return { duration, branchResult };
+            }
+
+            return { duration };
         }
 
         if (skippable) {
             log(step, total, `${chalk.yellow("⚠")} ${name} ${chalk.dim(formatTime(duration))} [SKIPPED]`);
             if (!isTestMode) {
-                return duration;
+                return { duration };
             }
             throw new Error(`Skipped command: ${name}`);
         }

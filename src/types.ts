@@ -5,6 +5,7 @@ export interface WorkflowCommand {
     name: string;
     skippable?: boolean;
     parallel?: WorkflowCommand[];  // Changed to support nested commands
+    callback?: (result: { exitCode: number, stdout: string, stderr: string }) => string | undefined;
 }
 
 export interface WorkflowConfig {
@@ -19,6 +20,7 @@ export interface Command {
     name: string;
     skippable?: boolean;
     parallel?: Command[];  // Changed to support nested commands
+    callback?: (result: { exitCode: number, stdout: string, stderr: string }) => string | undefined;
 }
 
 export interface RunnerOptions {
@@ -28,7 +30,13 @@ export interface RunnerOptions {
 
 export interface WorkflowBuilder {
     name(name: string): WorkflowBuilder;
-    addCommand(command: string, name: string, skippable?: boolean): WorkflowBuilder;
+    execute(command: string, name: string, skippable?: boolean): WorkflowBuilder;
+    executeWith(
+        command: string,
+        name: string,
+        callback: (result: { exitCode: number, stdout: string, stderr: string }) => string | undefined,
+        skippable?: boolean
+    ): WorkflowBuilder;
     build(): WorkflowConfig;
     run(options?: WorkflowOptions): Promise<boolean>;
 }

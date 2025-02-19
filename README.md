@@ -65,9 +65,9 @@ workflow-run
 import { createWorkflow } from 'alvamind-workflow';
 
 const workflow = createWorkflow({ name: 'CI Pipeline' })
-  .addCommand('bun run lint', 'Lint Code')
-  .addCommand('bun run test', 'Run Tests', true)
-  .addCommand('bun run build', 'Build Project');
+  .execute('bun run lint', 'Lint Code')
+  .execute('bun run test', 'Run Tests', true)
+  .execute('bun run build', 'Build Project');
 
 await workflow.run();
 ```
@@ -102,8 +102,8 @@ Step 3/3: Deploy
 ```typescript
 try {
   await workflow
-    .addCommand('risky-command', 'Risky Step', true) // skippable
-    .addCommand('must-run', 'Critical Step')         // will fail if error
+    .execute('risky-command', 'Risky Step', true) // skippable
+    .execute('must-run', 'Critical Step')         // will fail if error
     .run();
 } catch (error) {
   console.error('Workflow failed:', error);
@@ -155,7 +155,8 @@ Creates a new programmatic workflow builder.
 A fluent interface for constructing workflows programmatically.
 
 -   `name(name: string)`: Sets the workflow name.
--   `addCommand(command: string, name: string, skippable?: boolean)`: Adds a command to the workflow.
+-   `execute(command: string, name: string, skippable?: boolean)`: Adds a command to the workflow.
+-   `executeWith(command: string, name: string, callback: (result: { exitCode: number, stdout: string, stderr: string }) => string | undefined, skippable?: boolean)`: Adds a command with a callback (for branching logic).
 -   `build()`: Builds the workflow configuration object (`WorkflowConfig`).
 -   `run(options?: WorkflowOptions)`: Runs the workflow.
 

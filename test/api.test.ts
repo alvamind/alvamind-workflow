@@ -27,8 +27,8 @@ describe("Programmatic API", () => {
     test("should chain commands", () => {
         const workflow = createWorkflow()
             .name("Chain Test")
-            .addCommand("echo 'step 1'", "First Step")
-            .addCommand("echo 'step 2'", "Second Step", true);
+            .execute("echo 'step 1'", "First Step")
+            .execute("echo 'step 2'", "Second Step", true);
 
         const config = workflow.build();
         expect(config.commands).toHaveLength(2);
@@ -40,16 +40,16 @@ describe("Programmatic API", () => {
 
     test("should execute workflow", async () => {
         const workflow = createWorkflow({ name: "Execution Test" })
-            .addCommand("echo 'testing'", "Echo Test")
-            .addCommand("pwd", "Print Directory");
+            .execute("echo 'testing'", "Echo Test")
+            .execute("pwd", "Print Directory");
 
         await workflow.run({ testMode: true });
     });
 
     test("should handle command failures", async () => {
         const workflow = createWorkflow()
-            .addCommand("exit 1", "Failed Command", true)
-            .addCommand("echo 'should still run'", "Next Command");
+            .execute("exit 1", "Failed Command", true)
+            .execute("echo 'should still run'", "Next Command");
 
         await expect(workflow.run({ testMode: true })).rejects.toThrow();
     });
@@ -58,7 +58,7 @@ describe("Programmatic API", () => {
         process.env.TEST_API_VAR = "test_value";
 
         const workflow = createWorkflow()
-            .addCommand("echo $TEST_API_VAR", "Echo Env");
+            .execute("echo $TEST_API_VAR", "Echo Env");
 
         await workflow.run({ testMode: true });
         delete process.env.TEST_API_VAR;
@@ -66,7 +66,7 @@ describe("Programmatic API", () => {
 
     test("should accept command chaining", async () => {
         const workflow = createWorkflow()
-            .addCommand("echo 'first' && echo 'second'", "Multiple Commands");
+            .execute("echo 'first' && echo 'second'", "Multiple Commands");
 
         await workflow.run({ testMode: true });
     });
@@ -75,9 +75,9 @@ describe("Programmatic API", () => {
         const testFile = join(TEST_DIR, "test.txt");
 
         const workflow = createWorkflow()
-            .addCommand(`echo 'content' > ${testFile}`, "Create File")
-            .addCommand(`cat ${testFile}`, "Read File")
-            .addCommand(`rm ${testFile}`, "Delete File");
+            .execute(`echo 'content' > ${testFile}`, "Create File")
+            .execute(`cat ${testFile}`, "Read File")
+            .execute(`rm ${testFile}`, "Delete File");
 
         await workflow.run({ testMode: true });
     });
@@ -86,7 +86,7 @@ describe("Programmatic API", () => {
         const workflow = createWorkflow();
         const config1 = workflow.build();
 
-        workflow.addCommand("echo 'new'", "New Command");
+        workflow.execute("echo 'new'", "New Command");
         const config2 = workflow.build();
 
         expect(config1.commands).toHaveLength(0);
@@ -95,7 +95,7 @@ describe("Programmatic API", () => {
 
     test("should merge options with defaults", async () => {
         const workflow = createWorkflow()
-            .addCommand("echo 'test options'", "Test Options");
+            .execute("echo 'test options'", "Test Options");
 
         // Test with no options
         await workflow.run();
@@ -107,5 +107,55 @@ describe("Programmatic API", () => {
         const namedWorkflow = createWorkflow({ name: "Custom Name" });
         const config = namedWorkflow.build();
         expect(config.name).toBe("Custom Name");
+    });
+
+    test("should handle command callbacks and branching", async () => {
+        const workflow = createWorkflow({ name: "Callback Test" })
+            .executeWith(
+                "echo 'test-branch'",
+                "Branch Command",
+                (result) => {
+                    return result.stdout.includes('test-branch') ? 'success' : undefined;
+                }
+            )
+            .execute("echo 'success path'", "Success Path")
+            .execute("echo 'all done'", "Final Step");
+
+        await workflow.run({ testMode: true });
+    });
+
+    test("should handle failed command callbacks", async () => {
+        const workflow = createWorkflow({ name: "Failed Callback Test" })
+            .executeWith(
+                "exit 1",
+                "Failing Command",
+                (result) => {
+                    return result.exitCode === 0 ? 'continue' : undefined;
+                },
+                true
+            )
+            .execute("echo 'should not run'", "Unreachable Step");
+
+        await expect(workflow.run({ testMode: true })).rejects.toThrow();
+    });
+
+    test("should support multiple branching paths", async () => {
+        let path = '';
+
+        const workflow = createWorkflow({ name: "Multi-Branch Test" })
+            .executeWith(
+                "echo 'path-a'",
+                "Decision Point",
+                (result) => {
+                    console.log('Callback received:', { stdout: result.stdout });
+                    path = result.stdout === 'path-a' ? 'a' : undefined;
+                    return path;
+                }
+            )
+            .execute("echo 'branch-a'", "Path A")
+            .execute("echo 'end'", "End Point");
+
+        await workflow.run({ testMode: true });
+        expect(path).toBe('a');
     });
 });

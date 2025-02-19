@@ -12,17 +12,27 @@ class WorkflowBuilderImpl implements WorkflowBuilder {
         };
     }
 
-    name(name: string): WorkflowBuilder {
+    name(name: string): this {
         this.config.name = name;
         return this;
     }
 
-    addCommand(command: string, name: string, skippable: boolean = false): WorkflowBuilder {
+    execute(command: string, name: string, skippable: boolean = false): this {
         this.config.commands.push({ command, name, skippable });
         return this;
     }
 
-    addParallelCommands(name: string, commands: Array<{ command: string, name: string, skippable?: boolean }>): WorkflowBuilder {
+    executeWith(
+        command: string,
+        name: string,
+        callback: (result: { exitCode: number, stdout: string, stderr: string }) => string | undefined,
+        skippable: boolean = false
+    ): this {
+        this.config.commands.push({ command, name, callback, skippable });
+        return this;
+    }
+
+    addParallelCommands(name: string, commands: Array<{ command: string, name: string, skippable?: boolean }>): this {
         this.config.commands.push({
             name,
             parallel: commands.map(cmd => ({

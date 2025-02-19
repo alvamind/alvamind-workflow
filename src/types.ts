@@ -14,12 +14,14 @@ export interface WorkflowConfig {
 
 export interface Command {
     command: ReturnType<typeof $>;
+    originalCmd: string;  // Add this to store the original command string
     name: string;
     skippable?: boolean;
 }
 
 export interface RunnerOptions {
     testMode?: boolean;
+    interactive?: boolean;  // Add this line
 }
 
 export interface WorkflowBuilder {

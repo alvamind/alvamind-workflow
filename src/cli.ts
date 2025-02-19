@@ -16,7 +16,7 @@ async function main() {
     try {
         const workflowPath = process.argv[2] || "workflow.yml";
         const config = await loadWorkflow(workflowPath);
-        await runWorkflow(config);
+        await runWorkflow(config, { interactive: true });
     } catch (error) {
         console.error(chalk.red(error instanceof Error ? error.message : String(error)));
         process.exit(1);

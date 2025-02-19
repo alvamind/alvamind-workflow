@@ -22,8 +22,10 @@ export async function runWorkflow(config: WorkflowConfig, options: RunnerOptions
 
     const startTime = performance.now();
     const commands: Command[] = config.commands.map(cmd => ({
-        ...cmd,
-        command: $`sh -c ${cmd.command}`  // Use sh -c to execute commands
+        name: cmd.name,
+        originalCmd: cmd.command,
+        command: $`sh -c ${cmd.command}`,
+        skippable: cmd.skippable
     }));
 
     console.log(chalk.bold(`\n🐳 Executing workflow: ${config.name}`));
@@ -31,7 +33,7 @@ export async function runWorkflow(config: WorkflowConfig, options: RunnerOptions
 
     try {
         for (let i = 0; i < commands.length; i++) {
-            await executeCommand(commands[i], i + 1, commands.length);
+            await executeCommand(commands[i], i + 1, commands.length, options.interactive);
         }
 
         const totalTime = performance.now() - startTime;

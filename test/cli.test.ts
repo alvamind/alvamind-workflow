@@ -112,4 +112,107 @@ commands:
         expect(status).toBe(1);
         expect(output).toContain("Workflow interrupted");
     }, 10000); // Increase timeout to 10 seconds
+
+    test("should handle failed commands in interactive mode", async () => {
+        const testWorkflow = `
+version: "1.0"
+name: "Interactive Workflow"
+commands:
+  - command: "exit 1"
+    name: "Failing Step"
+  - command: "echo success"
+    name: "Success Step"
+`;
+        const workflowPath = join(TEST_DIR, "interactive.yml");
+        await writeFile(workflowPath, testWorkflow);
+
+        const proc = Bun.spawn(["bun", CLI_PATH, workflowPath], {
+            stdin: "pipe",
+            stderr: "pipe",
+            stdout: "pipe"
+        });
+
+        // Wait for the failure prompt
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Simulate entering "2" (new command) followed by "echo fixed"
+        proc.stdin.write("2\n");
+        await new Promise(resolve => setTimeout(resolve, 100));
+        proc.stdin.write("echo fixed\n");
+
+        const output = await new Response(proc.stdout).text();
+        const status = await proc.exited;
+
+        expect(status).toBe(0);
+        expect(output).toContain("Enter new command");
+        expect(output).toContain("Executing new command");
+        expect(output).toContain("Success Step");
+    });
+
+    test("should handle skip option for failed commands", async () => {
+        const testWorkflow = `
+version: "1.0"
+name: "Skip Workflow"
+commands:
+  - command: "exit 1"
+    name: "Skippable Step"
+    skippable: true
+  - command: "echo final"
+    name: "Final Step"
+`;
+        const workflowPath = join(TEST_DIR, "skip.yml");
+        await writeFile(workflowPath, testWorkflow);
+
+        const proc = Bun.spawn(["bun", CLI_PATH, workflowPath], {
+            stdin: "pipe",
+            stderr: "pipe",
+            stdout: "pipe"
+        });
+
+        // Wait for the failure prompt
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Simulate entering "3" (skip and continue)
+        proc.stdin.write("3\n");
+
+        const output = await new Response(proc.stdout).text();
+        const status = await proc.exited;
+
+        expect(status).toBe(0);
+        expect(output).toContain("[SKIPPED]");
+        expect(output).toContain("Final Step");
+    });
+
+    test("should abort workflow when requested", async () => {
+        const testWorkflow = `
+version: "1.0"
+name: "Abort Workflow"
+commands:
+  - command: "exit 1"
+    name: "Failed Step"
+  - command: "echo never-reached"
+    name: "Unreachable Step"
+`;
+        const workflowPath = join(TEST_DIR, "abort.yml");
+        await writeFile(workflowPath, testWorkflow);
+
+        const proc = Bun.spawn(["bun", CLI_PATH, workflowPath], {
+            stdin: "pipe",
+            stderr: "pipe",
+            stdout: "pipe"
+        });
+
+        // Wait for the failure prompt
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Simulate entering "4" (abort workflow)
+        proc.stdin.write("4\n");
+
+        const output = await new Response(proc.stdout).text();
+        const status = await proc.exited;
+
+        expect(status).toBe(1);
+        expect(output).toContain("Workflow aborted by user");
+        expect(output).not.toContain("Unreachable Step");
+    });
 });

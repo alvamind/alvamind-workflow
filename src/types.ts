@@ -1,9 +1,10 @@
 import { $ } from "bun";
 
 export interface WorkflowCommand {
-    command: string;
+    command?: string;
     name: string;
     skippable?: boolean;
+    parallel?: WorkflowCommand[];  // Changed to support nested commands
 }
 
 export interface WorkflowConfig {
@@ -13,10 +14,11 @@ export interface WorkflowConfig {
 }
 
 export interface Command {
-    command: ReturnType<typeof $>;
-    originalCmd: string;  // Add this to store the original command string
+    command?: ReturnType<typeof $>;
+    originalCmd?: string;
     name: string;
     skippable?: boolean;
+    parallel?: Command[];  // Changed to support nested commands
 }
 
 export interface RunnerOptions {

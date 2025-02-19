@@ -116,6 +116,14 @@ try {
 await workflow.run({ testMode: true }); // Dry run without executing commands
 ```
 
+### Interactive Mode
+
+When a command fails, the interactive mode provides options to:
+1. Retry the original command
+2. Enter a new command to execute
+3. Skip the current step (if skippable)
+4. Abort the entire workflow
+
 ## 🔧 API Reference
 
 ### `loadWorkflow(path?: string)`
@@ -195,7 +203,7 @@ alvamind-workflow/
 
 ## 📄 License
 
-MIT © [Your Name]
+MIT © Alvamind 2025
 
 ---
 

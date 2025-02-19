@@ -10,17 +10,19 @@ commands:
   - command: "cp node_modules/.zenstack/.logical-prisma-client/index-fixed.d.ts prisma"
     name: "Copying Prisma types"
   
-  - command: "rm -rf node_modules/.zenstack/zod"
-    name: "Cleaning Zod files"
-    skippable: true
-  
-  - command: "rm -f *.prisma"
-    name: "Cleaning Prisma files"
-    skippable: true
-  
-  - command: "rm -f prisma/schema.prisma"
-    name: "Cleaning schema"
-    skippable: true
+  - name: "Cleanup Tasks"
+    parallel:
+      - command: "rm -rf node_modules/.zenstack/zod"
+        name: "Cleaning Zod files"
+        skippable: true
+      
+      - command: "rm -f *.prisma"
+        name: "Cleaning Prisma files"
+        skippable: true
+      
+      - command: "rm -f prisma/schema.prisma"
+        name: "Cleaning schema"
+        skippable: true
   
   - command: "bun run prisma-field-omitter --config prisma/prisma-field-omitter.json"
     name: "Running field omitter"

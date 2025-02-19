@@ -106,6 +106,10 @@ export async function executeCommand(
         clearInterval(intervalId);
         process.stdout.write("\r" + " ".repeat(80) + "\r");
 
+        if (!result) {
+            throw new Error("Command execution failed: no result returned");
+        }
+
         if (result.exitCode === 0) {
             log(step, total, `${chalk.green("✓")} ${name} ${chalk.dim(formatTime(duration))}`);
             return duration;

@@ -191,6 +191,84 @@ commands:
     await runWorkflow(config, { testMode: true });
   });
 
+  test("should execute parallel commands", async () => {
+    const testWorkflow = `
+version: "1.0"
+name: "Parallel Workflow"
+commands:
+  - name: "Parallel Group"
+    parallel:
+      - command: "sleep 1 && echo task1"
+        name: "Task 1"
+      - command: "sleep 1 && echo task2"
+        name: "Task 2"
+      - command: "sleep 1 && echo task3"
+        name: "Task 3"
+  - command: "echo done"
+    name: "Final Task"
+`;
+    const workflowPath = join(TEST_DIR, "parallel-workflow.yml");
+    await writeFile(workflowPath, testWorkflow);
+
+    const config = await loadWorkflow(workflowPath);
+    const startTime = Date.now();
+    await runWorkflow(config, { testMode: true });
+    const duration = Date.now() - startTime;
+
+    // All parallel tasks should complete in ~1 second, not ~3 seconds
+    expect(duration).toBeGreaterThan(900);
+    expect(duration).toBeLessThan(2000);
+  });
+
+  test("should handle failures in parallel commands", async () => {
+    const testWorkflow = `
+version: "1.0"
+name: "Parallel Failure Workflow"
+commands:
+  - name: "Parallel Group"
+    parallel:
+      - command: "echo success1"
+        name: "Success Task 1"
+      - command: "exit 1"
+        name: "Failing Task"
+        skippable: true
+      - command: "echo success2"
+        name: "Success Task 2"
+`;
+    const workflowPath = join(TEST_DIR, "parallel-failure-workflow.yml");
+    await writeFile(workflowPath, testWorkflow);
+
+    const config = await loadWorkflow(workflowPath);
+    await expect(runWorkflow(config, { testMode: true })).rejects.toThrow();
+  });
+
+  test("should handle nested parallel groups", async () => {
+    const testWorkflow = `
+version: "1.0"
+name: "Nested Parallel Workflow"
+commands:
+  - name: "Outer Group"
+    parallel:
+      - name: "Inner Group 1"
+        parallel:
+          - command: "echo inner1-task1"
+            name: "Inner 1 Task 1"
+          - command: "echo inner1-task2"
+            name: "Inner 1 Task 2"
+      - name: "Inner Group 2"
+        parallel:
+          - command: "echo inner2-task1"
+            name: "Inner 2 Task 1"
+          - command: "echo inner2-task2"
+            name: "Inner 2 Task 2"
+`;
+    const workflowPath = join(TEST_DIR, "nested-parallel-workflow.yml");
+    await writeFile(workflowPath, testWorkflow);
+
+    const config = await loadWorkflow(workflowPath);
+    await runWorkflow(config, { testMode: true });
+  });
+
   afterAll(() => {
     process.exit = originalExit;
     setTestMode(false);

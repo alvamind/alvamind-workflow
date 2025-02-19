@@ -22,6 +22,18 @@ class WorkflowBuilderImpl implements WorkflowBuilder {
         return this;
     }
 
+    addParallelCommands(name: string, commands: Array<{ command: string, name: string, skippable?: boolean }>): WorkflowBuilder {
+        this.config.commands.push({
+            name,
+            parallel: commands.map(cmd => ({
+                command: cmd.command,
+                name: cmd.name,
+                skippable: cmd.skippable
+            }))
+        });
+        return this;
+    }
+
     build(): WorkflowConfig {
         return {
             ...this.config,

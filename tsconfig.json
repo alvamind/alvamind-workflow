@@ -1,16 +1,12 @@
 {
   "compilerOptions": {
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
-    "target": "ES2020",
+    "lib": ["ESNext"],
+    "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": false,
     "verbatimModuleSyntax": false,
     "noEmit": false,
     "strict": true,
@@ -23,14 +19,9 @@
     "outDir": "./dist",
     "declaration": true,
     "sourceMap": true,
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "types": ["bun-types"]
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "test"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test"]
 }

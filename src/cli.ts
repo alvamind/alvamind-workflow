@@ -11,12 +11,46 @@ process.on("SIGINT", () => {
     process.exit(1);
 });
 
+// Parse command line arguments
+function parseArgs() {
+    const args = process.argv.slice(2);
+    const options = {
+        workflowPath: "workflow.yml",
+        testMode: false,
+        interactive: true
+    };
+
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+
+        if (arg === "--test" || arg === "-t") {
+            options.testMode = true;
+        } else if (arg === "--no-interactive" || arg === "-n") {
+            options.interactive = false;
+        } else if (!arg.startsWith("-")) {
+            options.workflowPath = arg;
+        }
+    }
+
+    return options;
+}
+
 // Make executable if run directly
 async function main() {
     try {
-        const workflowPath = process.argv[2] || "workflow.yml";
-        const config = await loadWorkflow(workflowPath);
-        await runWorkflow(config, { interactive: true });
+        const options = parseArgs();
+        console.log(chalk.cyan(`Loading workflow from: ${options.workflowPath}`));
+
+        const config = await loadWorkflow(options.workflowPath);
+
+        if (options.testMode) {
+            console.log(chalk.yellow("Running in test mode - commands will not execute"));
+        }
+
+        await runWorkflow(config, {
+            interactive: options.interactive,
+            testMode: options.testMode
+        });
     } catch (error) {
         console.error(chalk.red(error instanceof Error ? error.message : String(error)));
         process.exit(1);

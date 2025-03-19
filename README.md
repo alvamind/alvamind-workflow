@@ -19,6 +19,12 @@ Alvamind Workflow streamlines your development process by providing an elegant w
 - Skippable steps for optional tasks
 - Graceful interruption handling
 
+🔀 **Conditional Execution & Dependencies**
+- Execute steps based on dynamic conditions
+- Type-safe dependencies between steps
+- Access results from previous steps
+- Skip steps when conditions aren't met
+
 🛠️ **Developer Experience**
 - TypeScript-first design
 - Minimal configuration required
@@ -97,6 +103,83 @@ Step 3/3: Deploy
 
 ## 🎛️ Advanced Features
 
+### Conditional Execution
+
+Define steps that only run when certain conditions are met:
+
+```typescript
+workflow
+  .executeWithId("check", "node -v", "Check Node Version")
+  .execute("npm run build", "Build")
+  .when(ctx => ctx.getStdout("check").startsWith("v18"), "Node 18 Required")
+  .execute("npm run deploy", "Deploy")
+  .when(ctx => ctx.getExitCode("build") === 0, "Only deploy if build succeeds")
+```
+
+YAML configuration:
+
+```yaml
+commands:
+  - name: "Check Node Version" 
+    command: "node -v"
+    id: "check"
+
+  - name: "Build"
+    command: "npm run build"
+    condition: |
+      (context) => context.getStdout("check").startsWith("v18")
+
+  - name: "Deploy"
+    command: "npm run deploy"
+    condition: |
+      (context) => context.getExitCode("build") === 0
+```
+
+### Dependencies Between Steps
+
+Explicitly define step dependencies:
+
+```typescript
+workflow
+  .executeWithId("deps", "npm install", "Install Dependencies")
+  .executeWithId("build", "npm run build", "Build")
+  .dependsOn("deps")
+  .executeWithId("test", "npm test", "Test")
+  .dependsOn("build")
+```
+
+YAML configuration:
+
+```yaml
+commands:
+  - name: "Install Dependencies"
+    command: "npm install"
+    id: "deps"
+
+  - name: "Build"
+    command: "npm run build"
+    id: "build"
+    dependsOn: ["deps"]
+
+  - name: "Test"
+    command: "npm test"
+    dependsOn: ["build"]
+```
+
+### Type-Safe Results
+
+Access previous command results with TypeScript type safety:
+
+```typescript
+workflow
+  .executeWithId<"check-version">("check-version", "node -v", "Get Version")
+  .when(ctx => {
+    // TypeScript knows this is valid and provides completion
+    const version = ctx.getStdout("check-version");
+    return version?.startsWith("v18");
+  }, "Verify Version")
+```
+
 ### Error Handling
 
 ```typescript
@@ -155,30 +238,23 @@ Creates a new programmatic workflow builder.
 A fluent interface for constructing workflows programmatically.
 
 -   `name(name: string)`: Sets the workflow name.
--   `execute(command: string, name: string, skippable?: boolean)`: Adds a command to the workflow.
--   `executeWith(command: string, name: string, callback: (result: { exitCode: number, stdout: string, stderr: string }) => string | undefined, skippable?: boolean)`: Adds a command with a callback (for branching logic).
+-   `execute<T>(command: string, name: string, skippable?: boolean)`: Adds a command to the workflow.
+-   `executeWithId<T>(id: T, command: string, name: string, skippable?: boolean)`: Adds a command with an ID for referencing.
+-   `executeWith(command: string, name: string, callback: (result: { exitCode: number, stdout: string, stderr: string }) => string | undefined, skippable?: boolean)`: Adds a command with a callback.
+-   `when(condition: (context: WorkflowContext) => boolean | Promise<boolean>, name: string)`: Adds a condition to the last command.
+-   `dependsOn(...ids: string[])`: Defines dependencies for the last command.
 -   `build()`: Builds the workflow configuration object (`WorkflowConfig`).
 -   `run(options?: WorkflowOptions)`: Runs the workflow.
 
-## Workflow Configuration (WorkflowConfig)
+### `WorkflowContext`
 
-```typescript
-interface WorkflowConfig {
-  version: string;
-  name: string;
-  commands: WorkflowCommand[];
-}
-```
+A context object that provides access to previous command results.
 
-## Workflow Command (WorkflowCommand)
-
-```typescript
-interface WorkflowCommand {
-  command: string;
-  name: string;
-  skippable?: boolean;
-}
-```
+-   `results`: Record of all command results.
+-   `getResult(id: string)`: Gets the full result for a specific command.
+-   `getStdout(id: string)`: Gets the stdout from a specific command.
+-   `getExitCode(id: string)`: Gets the exit code from a specific command.
+-   `getStderr(id: string)`: Gets the stderr from a specific command.
 
 ## 🤝 Contributing
 
@@ -199,6 +275,9 @@ alvamind-workflow/
 │   ├── runner.ts      # Execution engine
 │   ├── types.ts       # TypeScript types
 │   └── workflow.ts    # Workflow builder
+├── test/
+│   ├── api.test.ts    # API tests
+│   └── conditionals.test.ts # Conditional tests
 └── README.md
 ```
 

@@ -1,0 +1,56 @@
+version: "1.0"
+name: "Conditional ZenStack Workflow"
+commands:
+  # First step: check node version (we'll use this in conditions)
+  - name: "Check Node Version"
+    command: "node -v"
+    id: "node-version"
+
+  # Step with simple condition
+  - name: "Checking Schema"
+    command: "bunx zenstack check"
+    condition: |
+      (context) => {
+        const version = context.getStdout("node-version");
+        return version.startsWith("v");  # Any version is fine
+      }
+  
+  # Generate files with dependencies
+  - name: "Generating ZenStack Files"
+    command: "bun zen:generate"
+    id: "generated-files"
+    dependsOn: ["node-version"]
+  
+  # Copy step depends on generation
+  - name: "Copying Prisma Types"
+    command: "cp node_modules/.zenstack/.logical-prisma-client/index-fixed.d.ts prisma"
+    dependsOn: ["generated-files"]
+  
+  # Cleanup tasks running in parallel
+  - name: "Cleanup Tasks"
+    parallel:
+      - command: "rm -rf node_modules/.zenstack/zod"
+        name: "Cleaning Zod Files"
+        skippable: true
+        condition: |
+          (context) => {
+            return context.getExitCode("generated-files") === 0;
+          }
+      
+      - command: "rm -f *.prisma"
+        name: "Cleaning Prisma Files"
+        skippable: true
+      
+      - command: "rm -f prisma/schema.prisma"
+        name: "Cleaning Schema"
+        skippable: true
+  
+  # Final step with both condition and dependencies
+  - name: "Running Field Omitter"
+    command: "bun run prisma-field-omitter --config prisma/prisma-field-omitter.json"
+    dependsOn: ["generated-files"]
+    condition: |
+      (context) => {
+        // Only run if files were generated successfully
+        return context.getExitCode("generated-files") === 0;
+      }

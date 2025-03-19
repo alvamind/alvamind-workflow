@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { Command } from "./types.js";
+import { Command, WorkflowContext, CommandResult } from "./types.js";
 import { createInterface } from "readline";
 import { executeChildProcess } from "./utils/executeChildProcess.js";
 
@@ -23,11 +23,12 @@ const log = (step: number, total: number, message: string) => {
 };
 
 export async function executeCommand(
-  { command, originalCmd, name, skippable, callback }: Command,
+  { command, originalCmd, name, skippable, callback, id }: Command,
   step: number,
   total: number,
-  interactive: boolean = false
-): Promise<{ duration: number; branchResult?: string }> {
+  interactive: boolean = false,
+  context: WorkflowContext = createDefaultContext()
+): Promise<{ duration: number; branchResult?: string; result?: CommandResult }> {
   const startTime = performance.now();
   let intervalId: ReturnType<typeof setInterval>;
 
@@ -52,13 +53,13 @@ export async function executeCommand(
     return answer;
   }
 
-  async function handleFailure(error: any, duration: number): Promise<{ duration: number; branchResult?: string }> {
+  async function handleFailure(error: any, duration: number): Promise<{ duration: number; branchResult?: string; result?: CommandResult }> {
     const choice = await promptForRetry();
 
     switch (choice) {
       case "1":
         console.log(chalk.cyan("\nRetrying original command..."));
-        return executeCommand({ command, originalCmd, name, skippable, callback }, step, total, interactive);
+        return executeCommand({ command, originalCmd, name, skippable, callback, id }, step, total, interactive, context);
       case "2":
         const rl = createInterface({
           input: process.stdin,
@@ -74,8 +75,9 @@ export async function executeCommand(
           originalCmd: newCmd,
           name,
           skippable,
-          callback
-        }, step, total, interactive);
+          callback,
+          id
+        }, step, total, interactive, context);
       case "3":
         if (skippable) {
           log(step, total, `${chalk.yellow("⚠")} ${name} ${chalk.dim(formatTime(duration))} [SKIPPED]`);
@@ -107,6 +109,17 @@ export async function executeCommand(
     clearInterval(intervalId);
     process.stdout.write("\r" + " ".repeat(80) + "\r");
 
+    // Create a CommandResult with id if present
+    const commandResult: CommandResult = {
+      ...result,
+      id
+    };
+
+    // Store result in context if it has an ID
+    if (id) {
+      context.results[id] = commandResult;
+    }
+
     if (result.exitCode === 0) {
       log(step, total, `${chalk.green("✓")} ${name} ${chalk.dim(formatTime(duration))}`);
 
@@ -117,16 +130,16 @@ export async function executeCommand(
           stdout: result.stdout.toString().trim(),
           stderr: result.stderr.toString()
         });
-        return { duration, branchResult };
+        return { duration, branchResult, result: commandResult };
       }
 
-      return { duration };
+      return { duration, result: commandResult };
     }
 
     if (skippable) {
       log(step, total, `${chalk.yellow("⚠")} ${name} ${chalk.dim(formatTime(duration))} [SKIPPED]`);
       if (!isTestMode) {
-        return { duration };
+        return { duration, result: commandResult };
       }
       throw new Error(`Skipped command: ${name}`);
     }
@@ -142,4 +155,16 @@ export async function executeCommand(
 
     return handleFailure(error, duration);
   }
+}
+
+export function createDefaultContext(): WorkflowContext {
+  const results: Record<string, CommandResult> = {};
+
+  return {
+    results,
+    getResult: (id: string) => results[id],
+    getStdout: (id: string) => results[id]?.stdout?.trim(), // Add trim() to remove newlines
+    getExitCode: (id: string) => results[id]?.exitCode,
+    getStderr: (id: string) => results[id]?.stderr
+  };
 }

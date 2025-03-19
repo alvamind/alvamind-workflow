@@ -1,0 +1,44 @@
+# Alvamind Workflow Project Intelligence
+
+## Coding Patterns
+- Use TypeScript for all implementation files
+- Follow ESM module format (import/export)
+- Use Promise-based async/await patterns for asynchronous operations
+- Use chalk for terminal output formatting
+- Leverage fluent interfaces for builder patterns
+
+## Project Structure
+- Source code in src/ directory
+- Compiled output in dist/ directory
+- Main entry point is index.ts
+- CLI entry point is cli.ts
+
+## Style Preferences
+- Use camelCase for variable and function names
+- Use PascalCase for interface and type names
+- Use template literals for string interpolation
+- Prefer arrow functions for callbacks
+- Use explicit return types for public functions
+
+## Error Handling
+- Use try/catch blocks for error handling
+- Provide detailed error messages with context
+- Allow for graceful recovery where possible
+- Use skippable flag for non-critical commands
+
+## Documentation
+- Use JSDoc comments for public APIs
+- Provide examples for complex functionality
+- Keep README up to date with latest features
+- Use code blocks for examples
+
+## Testing
+- Use small, focused tests
+- Test both success and failure paths
+- Mock external dependencies
+
+## Workflow Execution
+- Commands should be executed in order
+- Provide real-time feedback during execution
+- Track and display execution time
+- Allow for interactive recovery from failures

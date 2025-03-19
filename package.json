@@ -14,9 +14,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "bun run tsc && chmod +x dist/cli.js",
+    "build": "tsc && chmod +x dist/cli.js",
     "start": "node dist/cli.js",
-    "test": "bun test",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "prepublishOnly": "npm run build && npm test",
     "prepare": "npm run build",
     "clean": "rm -rf dist"
@@ -27,7 +27,6 @@
     "cli",
     "devops",
     "typescript",
-    "bun",
     "task-runner",
     "build-tool"
   ],
@@ -47,10 +46,9 @@
   },
   "devDependencies": {
     "@types/node": "^20.5.0",
-    "typescript": "^5.1.6",
-    "bun-types": "latest"
+    "typescript": "^5.1.6"
   },
-  "peerDependencies": {
-    "bun": "^1.0.0"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

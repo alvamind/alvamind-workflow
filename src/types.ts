@@ -1,10 +1,8 @@
-import { $ } from "bun";
-
 export interface WorkflowCommand {
     command?: string;
     name: string;
     skippable?: boolean;
-    parallel?: WorkflowCommand[];  // Changed to support nested commands
+    parallel?: WorkflowCommand[];
     callback?: (result: { exitCode: number, stdout: string, stderr: string }) => string | undefined;
 }
 
@@ -15,17 +13,17 @@ export interface WorkflowConfig {
 }
 
 export interface Command {
-    command?: ReturnType<typeof $>;
+    command?: () => Promise<{ exitCode: number, stdout: string, stderr: string }>;
     originalCmd?: string;
     name: string;
     skippable?: boolean;
-    parallel?: Command[];  // Changed to support nested commands
+    parallel?: Command[];
     callback?: (result: { exitCode: number, stdout: string, stderr: string }) => string | undefined;
 }
 
 export interface RunnerOptions {
     testMode?: boolean;
-    interactive?: boolean;  // Add this line
+    interactive?: boolean;
 }
 
 export interface WorkflowBuilder {

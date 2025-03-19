@@ -1,11 +1,11 @@
 import { readFile } from "fs/promises";
 import { parse } from "yaml";
-import { $ } from "bun";
 import chalk from "chalk";
 import { executeCommand, isRunning, formatTime, setTestMode } from "./runner";
 import { WorkflowConfig, Command, RunnerOptions, WorkflowCommand } from "./types";
 import { join, dirname } from "path";
 import { existsSync } from "fs";
+import { executeChildProcess } from "./utils/executeChildProcess";
 
 async function findWorkflowFile(startPath: string = process.cwd()): Promise<string | null> {
     let currentPath = startPath;
@@ -41,7 +41,7 @@ function createCommand(cmd: WorkflowCommand): Command {
     return {
         name: cmd.name,
         originalCmd: cmd.command,
-        command: cmd.command ? $`sh -c "${cmd.command}"` : undefined,  // Add quotes here
+        command: cmd.command ? () => executeChildProcess(cmd.command!) : undefined,
         skippable: cmd.skippable,
         parallel: cmd.parallel?.map(createCommand),
         callback: cmd.callback

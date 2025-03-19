@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { Command } from "./types";
-import { $ } from "bun";
 import { createInterface } from "readline";
+import { executeChildProcess } from "./utils/executeChildProcess";
 
 export let isRunning = true;
 export const setIsRunning = (value: boolean) => {
@@ -70,7 +70,7 @@ export async function executeCommand(
                 rl.close();
                 console.log(chalk.cyan("\nExecuting new command..."));
                 return executeCommand({
-                    command: $`sh -c ${newCmd}`,
+                    command: () => executeChildProcess(newCmd),
                     originalCmd: newCmd,
                     name,
                     skippable,
@@ -101,15 +101,11 @@ export async function executeCommand(
             }
         }, 100);
 
-        const result = await command;
+        const result = command ? await command() : { exitCode: 0, stdout: '', stderr: '' };
         const duration = performance.now() - startTime;
 
         clearInterval(intervalId);
         process.stdout.write("\r" + " ".repeat(80) + "\r");
-
-        if (!result) {
-            throw new Error("Command execution failed: no result returned");
-        }
 
         if (result.exitCode === 0) {
             log(step, total, `${chalk.green("✓")} ${name} ${chalk.dim(formatTime(duration))}`);
@@ -118,7 +114,7 @@ export async function executeCommand(
             if (callback) {
                 const branchResult = callback({
                     exitCode: result.exitCode,
-                    stdout: result.stdout.toString().trim(),  // Add trim() here
+                    stdout: result.stdout.toString().trim(),
                     stderr: result.stderr.toString()
                 });
                 return { duration, branchResult };

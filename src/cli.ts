@@ -1,7 +1,7 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
-import { loadWorkflow, runWorkflow } from "./index";
-import { setIsRunning } from "./runner";
+import { loadWorkflow, runWorkflow } from "./index.js";
+import { setIsRunning } from "./runner.js";
 import chalk from "chalk";
 
 // Handle interruption
@@ -24,7 +24,8 @@ async function main() {
 }
 
 // Only run if called directly (not imported)
-if (import.meta.path === Bun.main) {
+// Using ESM detection for direct execution
+if (process.argv[1] === new URL(import.meta.url).pathname) {
     main();
 }
 

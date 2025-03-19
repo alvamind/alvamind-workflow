@@ -1,6 +1,6 @@
 # 🌊 Alvamind Workflow
 
-A lightweight and flexible workflow automation library for JavaScript/TypeScript projects, powered by Bun.
+A lightweight and flexible workflow automation library for JavaScript/TypeScript projects.
 
 ## 🎯 Introduction
 
@@ -35,7 +35,7 @@ Alvamind Workflow streamlines your development process by providing an elegant w
 ### Installation
 
 ```bash
-bun install alvamind-workflow
+npm install alvamind-workflow
 ```
 
 ### Simple Example (YAML)
@@ -46,12 +46,12 @@ version: "1.0"
 name: "Deploy Application"
 commands:
   - name: "Build Project"
-    command: "bun run build"
+    command: "npm run build"
   - name: "Run Tests"
-    command: "bun test"
+    command: "npm test"
     skippable: true
   - name: "Deploy"
-    command: "bun run deploy"
+    command: "npm run deploy"
 ```
 
 2. Run it:
@@ -65,9 +65,9 @@ workflow-run
 import { createWorkflow } from 'alvamind-workflow';
 
 const workflow = createWorkflow({ name: 'CI Pipeline' })
-  .execute('bun run lint', 'Lint Code')
-  .execute('bun run test', 'Run Tests', true)
-  .execute('bun run build', 'Build Project');
+  .execute('npm run lint', 'Lint Code')
+  .execute('npm run test', 'Run Tests', true)
+  .execute('npm run build', 'Build Project');
 
 await workflow.run();
 ```
@@ -78,17 +78,17 @@ await workflow.run();
 🐳 Executing workflow: Deploy Application
 =====================================
 Step 1/3: Build Project
-> bun run build
+> npm run build
  -> running... 2.5s
 [1/3] ✓ Build Project 2.5s
 
 Step 2/3: Run Tests
-> bun test
+> npm test
  -> running... 1.2s
 [2/3] ✓ Run Tests 1.2s
 
 Step 3/3: Deploy
-> bun run deploy
+> npm run deploy
  -> running... 3.1s
 [3/3] ✓ Deploy 3.1s
 =====================================

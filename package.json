@@ -1,6 +1,6 @@
 {
   "name": "alvamind-workflow",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "A lightweight and flexible workflow automation library for JavaScript/TypeScript projects",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,6 +21,8 @@
   ],
   "scripts": {
     "build": "tsc && chmod +x dist/cli.js",
+    "pretest": "bun run build",
+    "test": "bun test",
     "source": "generate-source output=documentation.md exclude=dist/,node_modules/,.git/",
     "commit": "commit",
     "clean": "clean",

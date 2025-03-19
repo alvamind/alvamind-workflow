@@ -1,5 +1,5 @@
 import { expect, test, describe, beforeEach, afterEach } from "bun:test";
-import { createWorkflow } from "../src";
+import { createWorkflow } from "../dist/index.js";
 import { mkdir, rm } from "fs/promises";
 import { join } from "path";
 

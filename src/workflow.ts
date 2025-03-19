@@ -1,5 +1,6 @@
-import { WorkflowBuilder, WorkflowConfig, WorkflowOptions } from "./types.js";
-
+import { WorkflowBuilder, WorkflowConfig, WorkflowOptions, Command } from "./types.js";
+import { executeCommand } from "./runner.js";
+import { executeChildProcess } from "./utils/executeChildProcess.js";
 
 class WorkflowBuilderImpl implements WorkflowBuilder {
   private config: WorkflowConfig;
@@ -56,10 +57,57 @@ class WorkflowBuilderImpl implements WorkflowBuilder {
     return this.config;
   }
 
-  // This will be implemented by the index.js when importing
-  run: (options?: WorkflowOptions) => Promise<boolean> = async () => {
-    throw new Error("Run method not initialized");
-  };
+  async run(options: WorkflowOptions = {}): Promise<boolean> {
+    const commands: Command[] = this.config.commands.map(cmd => ({
+      name: cmd.name,
+      originalCmd: cmd.command,
+      command: cmd.command ? () => executeChildProcess(cmd.command!) : undefined,
+      skippable: cmd.skippable,
+      parallel: cmd.parallel?.map(p => ({
+        name: p.name,
+        originalCmd: p.command,
+        command: p.command ? () => executeChildProcess(p.command!) : undefined,
+        skippable: p.skippable
+      })),
+      callback: cmd.callback
+    }));
+
+    let currentStep = 1;
+    const totalSteps = this.countTotalSteps(commands);
+
+    try {
+      for (const cmd of commands) {
+        if (cmd.parallel) {
+          await Promise.all(cmd.parallel.map(async (parallelCmd) => {
+            if (parallelCmd.command) {
+              return executeCommand(parallelCmd, currentStep++, totalSteps, options.interactive);
+            }
+          }));
+        } else if (cmd.command) {
+          const { branchResult } = await executeCommand(cmd, currentStep++, totalSteps, options.interactive);
+          if (cmd.callback && branchResult) {
+            // Handle branching based on callback result
+            continue;
+          }
+        }
+      }
+      return true;
+    } catch (error) {
+      if (options.testMode) {
+        throw error;
+      }
+      return false;
+    }
+  }
+
+  private countTotalSteps(commands: Command[]): number {
+    return commands.reduce((total, cmd) => {
+      if (cmd.parallel) {
+        return total + this.countTotalSteps(cmd.parallel);
+      }
+      return total + (cmd.command ? 1 : 0);
+    }, 0);
+  }
 }
 
 export function createWorkflow(options: WorkflowOptions = {}) {
